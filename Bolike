@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>💬 ChatApp</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    background: #0b141a; color: #e9edef; height: 100vh; overflow: hidden;
+  }
+  #root { height: 100vh; }
+
+  /* ---------- LOGIN ---------- */
+  .login {
+    display: flex; align-items: center; justify-content: center; height: 100vh;
+    background: linear-gradient(135deg, #075e54, #128c7e);
+  }
+  .login-box {
+    background: #111b21; padding: 40px; border-radius: 12px;
+    width: 340px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  }
+  .login-box h1 { font-size: 24px; }
+  .login-box p { color: #8696a0; font-size: 14px; }
+  .login-box input {
+    padding: 12px; border-radius: 8px; border: 1px solid #2a3942;
+    background: #202c33; color: #e9edef; font-size: 15px; outline: none;
+  }
+  .login-box input:focus { border-color: #00a884; }
+  .login-box button {
+    padding: 12px; border-radius: 8px; border: 0; background: #00a884;
+    color: #111b21; font-weight: 600; cursor: pointer; font-size: 15px;
+  }
+  .login-box button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- LAYOUT ---------- */
+  .app { display: grid; grid-template-columns: 340px 1fr; height: 100vh; }
+  .empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #222e35; color: #8696a0; gap: 10px;
+  }
+  .empty h2 { color: #e9edef; }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar {
+    background: #111b21; border-right: 1px solid #222e35;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; background: #202c33;
+  }
+  .me { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .logout {
+    background: transparent; border: 1px solid #2a3942; color: #8696a0;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  .logout:hover { color: #e9edef; border-color: #8696a0; }
+
+  .section-title {
+    padding: 12px 16px; font-size: 12px; text-transform: uppercase;
+    color: #8696a0; letter-spacing: .5px;
+  }
+
+  .user-list { list-style: none; overflow-y: auto; flex: 1; }
+  .user-list .muted { padding: 16px; color: #8696a0; font-size: 13px; text-align: center; }
+
+  .user {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #1f2c33;
+  }
+  .user:hover { background: #202c33; }
+  .user.active { background: #2a3942; }
+
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #00a884; color: #111b21;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; position: relative; flex-shrink: 0;
+  }
+  .dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #25d366; border: 2px solid #111b21;
+  }
+  .user-info { display: flex; flex-direction: column; }
+  .user-info .name { font-size: 15px; }
+  .user-info .status { font-size: 12px; color: #8696a0; }
+
+  /* ---------- CHAT ---------- */
+  .chat { display: flex; flex-direction: column; background: #0b141a; height: 100vh; }
+  .chat-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px; background: #202c33; border-bottom: 1px solid #222e35;
+  }
+  .chat-header .name { font-weight: 600; }
+  .chat-header .status { font-size: 12px; color: #8696a0; }
+
+  .messages {
+    flex: 1; overflow-y: auto; padding: 20px 40px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .bubble {
+    max-width: 65%; padding: 8px 12px; border-radius: 10px;
+    font-size: 14px; line-height: 1.4; word-wrap: break-word;
+    display: flex; gap: 8px; align-items: flex-end;
+    animation: pop .15s ease-out;
+  }
+  @keyframes pop { from { transform: translateY(4px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .bubble.mine {
+    background: #005c4b; align-self: flex-end; border-top-right-radius: 2px;
+  }
+  .bubble.theirs {
+    background: #202c33; align-self: flex-start; border-top-left-radius: 2px;
+  }
+  .bubble time { font-size: 10px; color: #8696a0; white-space: nowrap; }
+
+  .composer {
+    display: flex; gap: 10px; padding: 12px 20px; background: #202c33;
+  }
+  .composer input {
+    flex: 1; padding: 12px 16px; border-radius: 24px;
+    border: 0; background: #2a3942; color: #e9edef;
+    font-size: 14px; outline: none;
+  }
+  .composer button {
+    padding: 0 22px; border-radius: 24px; border: 0;
+    background: #00a884; color: #111b21; font-weight: 600;
+    cursor: pointer;
+  }
+  .composer button:disabled { opacity: .5; cursor: not-allowed; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #374045; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* =====================================================================
+   ChatApp — Single-file WhatsApp-style chat demo
+   Works across tabs in the same browser using BroadcastChannel.
+   Data persists in localStorage.
+   ===================================================================== */
+
+const STORAGE_KEYS = {
+  users:    'chatapp.users',
+  messages: 'chatapp.messages',
+  me:       'chatapp.me',
+};
+
+// ---------- tiny store ----------
+const store = {
+  get users()    { return JSON.parse(localStorage.getItem(STORAGE_KEYS.users)    || '[]'); },
+  get messages() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.messages) || '[]'); },
+  set users(v)    { localStorage.setItem(STORAGE_KEYS.users,    JSON.stringify(v)); },
+  set messages(v) { localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(v)); },
+};
+
+// ---------- cross-tab channel ----------
+const bc = new BroadcastChannel('chatapp');
+const listeners = new Set();
+bc.addEventListener('message', (e) => listeners.forEach((fn) => fn(e.data)));
+function emit(type, payload) {
+  bc.postMessage({ type, payload });
+  listeners.forEach((fn) => fn({ type, payload })); // also fire locally
+}
+
+// ---------- state ----------
+let state = {
+  me: JSON.parse(localStorage.getItem(STORAGE_KEYS.me) || 'null'),
+  users: [],
+  online: new Set(),          // userIds seen recently
+  selected: null,
+  messages: [],
+  typingFrom: null,
+};
+
+let typingTimeout = null;
+const presenceInterval = 2000;
+const presenceTTL = 5000;
+
+// =====================================================================
+// PRESENCE (heartbeat-based; works within a single browser)
+// =====================================================================
+const presenceMap = {}; // { userId: timestamp }
+
+function heartbeat() {
+  if (!state.me) return;
+  presenceMap[state.me.id] = Date.now();
+  emit('presence', { userId: state.me.id, at: Date.now() });
+}
+
+function cleanPresence() {
+  const now = Date.now();
+  let changed = false;
+  for (const id in presenceMap) {
+    if (now - presenceMap[id] > presenceTTL) { delete presenceMap[id]; changed = true; }
+  }
+  if (changed) {
+    state.online = new Set(Object.keys(presenceMap));
+    render();
+  }
+}
+
+setInterval(heartbeat, presenceInterval);
+setInterval(cleanPresence, 1000);
+
+// =====================================================================
+// RENDERING
+// =====================================================================
+const root = document.getElementById('root');
+
+function render() {
+  if (!state.me) return renderLogin();
+  root.innerHTML = `
+    <div class="app">
+      ${renderSidebar()}
+      ${state.selected ? renderChat() : renderEmpty()}
+    </div>
+  `;
+  bindEvents();
+  const box = document.querySelector('.messages');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function renderLogin() {
+  root.innerHTML = `
+    <div class="login">
+      <form class="login-box" id="login-form">
+        <h1>💬 ChatApp</h1>
+        <p>Enter a username to join</p>
+        <input id="username" placeholder="your_username" autofocus />
+        <button type="submit">Join</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    if (!username) return;
+    login(username);
+  });
+}
+
+function login(username) {
+  let users = store.users;
+  let user = users.find(u => u.username === username);
+  if (!user) {
+    user = { id: crypto.randomUUID(), username };
+    users = [...users, user];
+    store.users = users;
+    emit('users-changed', users);
+  }
+  state.me = user;
+  localStorage.setItem(STORAGE_KEYS.me, JSON.stringify(user));
+  heartbeat();
+  render();
+}
+
+function renderSidebar() {
+  const others = store.users.filter(u => u.id !== state.me.id);
+  const items = others.length === 0
+    ? `<li class="muted">No other users yet — open this file in another tab</li>`
+    : others.map(u => {
+        const isOnline = state.online.has(u.id);
+        const isActive = state.selected?.id === u.id;
+        return `
+          <li class="user ${isActive ? 'active' : ''}" data-user-id="${u.id}">
+            <div class="avatar">
+              ${u.username[0].toUpperCase()}
+              ${isOnline ? '<span class="dot"></span>' : ''}
+            </div>
+            <div class="user-info">
+              <span class="name">${escapeHtml(u.username)}</span>
+              <span class="status">${isOnline ? 'online' : 'offline'}</span>
+            </div>
+          </li>`;
+      }).join('');
+
+  return `
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <div class="me">
+          <div class="avatar">${state.me.username[0].toUpperCase()}</div>
+          <span>${escapeHtml(state.me.username)}</span>
+        </div>
+        <button class="logout" id="logout-btn">Logout</button>
+      </header>
+      <div class="section-title">Chats</div>
+      <ul class="user-list">${items}</ul>
+    </aside>
+  `;
+}
+
+function renderEmpty() {
+  return `
+    <div class="empty">
+      <h2>Welcome, ${escapeHtml(state.me.username)} 👋</h2>
+      <p>Select a chat to start messaging</p>
+    </div>
+  `;
+}
+
+function renderChat() {
+  const other = state.selected;
+  const isOnline = state.online.has(other.id);
+  const msgs = state.messages.filter(m =>
+    (m.fromUser === state.me.id && m.toUser === other.id) ||
+    (m.fromUser === other.id && m.toUser === state.me.id)
+  );
+
+  const bubbles = msgs.map(m => {
+    const mine = m.fromUser === state.me.id;
+    const t = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="bubble ${mine ? 'mine' : 'theirs'}">
+        <span>${escapeHtml(m.text)}</span>
+        <time>${t}</time>
+      </div>`;
+  }).join('');
+
+  const status = state.typingFrom === other.id ? 'typing…' : (isOnline ? 'online' : 'offline');
+
+  return `
+    <main class="chat">
+      <header class="chat-header">
+        <div class="avatar">${other.username[0].toUpperCase()}</div>
+        <div>
+          <div class="name">${escapeHtml(other.username)}</div>
+          <div class="status">${status}</div>
+        </div>
+      </header>
+      <div class="messages">${bubbles}</div>
+      <form class="composer" id="composer">
+        <input id="msg-input" placeholder="Type a message" autofocus autocomplete="off" />
+        <button type="submit" id="send-btn" disabled>Send</button>
+      </form>
+    </main>
+  `;
+}
+
+// =====================================================================
+// EVENT BINDING
+// =====================================================================
+function bindEvents() {
+  document.querySelectorAll('.user').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-user-id');
+      state.selected = store.users.find(u => u.id === id) || null;
+      render();
+    });
+  });
+
+  const logout = document.getElementById('logout-btn');
+  if (logout) logout.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEYS.me);
+    state.me = null;
+    state.selected = null;
+    render();
+  });
+
+  const composer = document.getElementById('composer');
+  if (composer) {
+    const input = document.getElementById('msg-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    input.addEventListener('input', () => {
+      sendBtn.disabled = !input.value.trim();
+      // typing indicator
+      emit('typing', { from: state.me.id, to: state.selected.id, isTyping: true });
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        emit('typing', { from: state.me.id, to: state.selected.id, isTyping: false });
+      }, 1200);
+    });
+
+    composer.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text || !state.selected) return;
+      sendMessage(state.me.id, state.selected.id, text);
+      input.value = '';
+      sendBtn.disabled = true;
+    });
+
+    input.focus();
+  }
+}
+
+// =====================================================================
+// MESSAGING
+// =====================================================================
+function sendMessage(from, to, text) {
+  const msg = {
+    id: crypto.randomUUID(),
+    fromUser: from,
+    toUser: to,
+    text,
+    createdAt: Date.now(),
+  };
+  const all = [...store.messages, msg];
+  store.messages = all;
+  state.messages = all;
+  emit('message', msg);
+  render();
+}
+
+// =====================================================================
+// INCOMING EVENTS (from other tabs)
+// =====================================================================
+listeners.add(({ type, payload }) => {
+  if (type === 'presence') {
+    presenceMap[payload.userId] = payload.at;
+    state.online = new Set(Object.keys(presenceMap));
+    if (state.me) render();
+  }
+
+  if (type === 'users-changed') {
+    // refresh sidebar if another tab added a user
+    if (state.me) render();
+  }
+
+  if (type === 'message') {
+    state.messages = store.messages;
+    if (state.me) render();
+  }
+
+  if (type === 'typing') {
+    if (!state.me || !state.selected) return;
+    if (payload.from === state.selected.id && payload.to === state.me.id) {
+      state.typingFrom = payload.isTyping ? payload.from : null;
+      render();
+    }
+  }
+});
+
+// =====================================================================
+// UTIL
+// =====================================================================
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// listen for storage changes from OTHER tabs (in case BroadcastChannel misses)
+window.addEventListener('storage', (e) => {
+  if (e.key === STORAGE_KEYS.users || e.key === STORAGE_KEYS.messages) {
+    state.messages = store.messages;
+    if (state.me) render();
+  }
+});
+
+// ask other tabs who's online
+emit('presence', { userId: state.me?.id || 'anon', at: 0 });
+
+// initial render
+render();
+</script>
+</body>
+</html>
